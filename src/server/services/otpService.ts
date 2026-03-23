@@ -60,6 +60,11 @@ export async function storeOTP(userId: string, otp: string) {
     })
     .returning();
 
+  await db
+    .update(users)
+    .set({ lastOtpSentAt: new Date() })
+    .where(eq(users.id, userId));
+
   return newVerification;
 }
 

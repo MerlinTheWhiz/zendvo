@@ -44,6 +44,7 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
   lastLogin: timestamp("last_login"),
+  lastOtpSentAt: timestamp("last_otp_sent_at"),
 });
 
 export const emailVerifications = pgTable(
