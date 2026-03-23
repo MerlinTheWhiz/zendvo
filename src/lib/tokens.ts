@@ -1,4 +1,5 @@
 import * as jose from "jose";
+export type UserRole = "Sender" | "Recipient" | "Admin";
 
 const ACCESS_TOKEN_SECRET = process.env.JWT_SECRET || "fallback_access_secret";
 const REFRESH_TOKEN_SECRET =
@@ -15,7 +16,7 @@ const encodedRefreshTokenSecret = new TextEncoder().encode(
 export interface TokenPayload {
   userId: string;
   email: string;
-  role: string;
+  role: UserRole;
 }
 
 export async function generateAccessToken(
