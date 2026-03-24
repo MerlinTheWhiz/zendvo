@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { isRateLimited } from "@/lib/rate-limiter";
-import { normalizePhoneNumber, validatePhoneNumber } from "@/lib/validation";
+import { normalizePhoneNumber, validatePhoneNumber, sanitizePhoneNumber, validateE164PhoneNumber } from "@/lib/validation";
 
 const LOOKUP_RATE_LIMIT = 20;
 const LOOKUP_RATE_WINDOW_MS = 60_000;
@@ -33,24 +33,17 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    if (phoneParam.length > MAX_PHONE_LENGTH) {
+    if (!validateE164PhoneNumber(phoneParam)) {
       return NextResponse.json(
-        { success: false, error: "Invalid phone number format" },
+        { success: false, error: "Invalid phone number format. Please use E.164 format (e.g., +2348123456789)" },
         { status: 400 },
       );
     }
 
-    if (!validatePhoneNumber(phoneParam)) {
-      return NextResponse.json(
-        { success: false, error: "Invalid phone number format" },
-        { status: 400 },
-      );
-    }
-
-    const normalizedPhone = normalizePhoneNumber(phoneParam);
+    const sanitizedPhone = sanitizePhoneNumber(phoneParam);
 
     const user = await db.query.users.findFirst({
-      where: eq(users.phoneNumber, normalizedPhone),
+      where: eq(users.phoneNumber, sanitizedPhone),
       columns: {
         name: true,
         username: true,

@@ -6,12 +6,14 @@ export interface RegisterUserInput {
   email: string;
   passwordHash: string;
   name?: string | null;
+  phoneNumber?: string | null;
 }
 
 export interface AuthUser {
   id: string;
   email: string;
   name: string | null;
+  phoneNumber: string | null;
   role: string;
   status: string;
 }
@@ -38,6 +40,24 @@ export async function findUserByEmail(email: string): Promise<AuthUser | null> {
     id: user.id,
     email: user.email,
     name: user.name,
+    phoneNumber: user.phoneNumber,
+    role: user.role,
+    status: user.status,
+  };
+}
+
+export async function findUserByPhoneNumber(phoneNumber: string): Promise<AuthUser | null> {
+  const user = await db.query.users.findFirst({
+    where: eq(users.phoneNumber, phoneNumber),
+  });
+
+  if (!user) return null;
+
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    phoneNumber: user.phoneNumber,
     role: user.role,
     status: user.status,
   };
@@ -50,6 +70,7 @@ export async function createUser(input: RegisterUserInput): Promise<AuthUser> {
       email: input.email,
       passwordHash: input.passwordHash,
       name: input.name ?? null,
+      phoneNumber: input.phoneNumber ?? null,
       role: "user",
       status: "unverified",
       loginAttempts: 0,
@@ -61,6 +82,7 @@ export async function createUser(input: RegisterUserInput): Promise<AuthUser> {
     id: user.id,
     email: user.email,
     name: user.name,
+    phoneNumber: user.phoneNumber,
     role: user.role,
     status: user.status,
   };

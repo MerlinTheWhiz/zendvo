@@ -4,9 +4,11 @@ import {
   validateEmail,
   validatePassword,
   sanitizeInput,
+  sanitizePhoneNumber,
+  validateE164PhoneNumber,
 } from "@/lib/validation";
 import { isRateLimited } from "@/lib/rate-limiter";
-import { createUser, findUserByEmail } from "@/server/db/authRepository";
+import { createUser, findUserByEmail, findUserByPhoneNumber } from "@/server/db/authRepository";
 import { generateOTP, storeOTP } from "@/server/services/otpService";
 import { sendVerificationEmail } from "@/server/services/emailService";
 
@@ -60,7 +62,7 @@ export async function POST(request: NextRequest) {
 
     // 3. Parse Request Body
     const body = await request.json();
-    const { email, password, name } = body;
+    const { email, password, name, phoneNumber } = body;
 
     // 4. Validate Missing Fields
     if (!email || !password) {
@@ -71,6 +73,21 @@ export async function POST(request: NextRequest) {
     }
 
     const sanitizedEmail = sanitizeInput(email);
+    let sanitizedPhoneNumber: string | null = null;
+
+    // Validate and sanitize phone number if provided
+    if (phoneNumber) {
+      if (!validateE164PhoneNumber(phoneNumber)) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Invalid phone number format. Please use E.164 format (e.g., +2348123456789)",
+          },
+          { status: 400 },
+        );
+      }
+      sanitizedPhoneNumber = sanitizePhoneNumber(phoneNumber);
+    }
 
     // 5. Validate Email Format
     if (!validateEmail(sanitizedEmail)) {
@@ -105,43 +122,89 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 8. Hash Password
-    const passwordHash = await bcrypt.hash(password, BCRYPT_COST);
-
-    // 9. Create User Record
-    const user = await createUser({
-      email: sanitizedEmail,
-      passwordHash,
-      name: name ? sanitizeInput(name) : null,
-    });
-
-    // Initiate email verification flow immediately after registration.
-    const otp = generateOTP();
-    await storeOTP(user.id, otp);
-
-    const emailResult = await sendVerificationEmail(
-      user.email,
-      otp,
-      user.name ?? undefined,
-    );
-
-    if (!emailResult.success) {
-      console.error("[REGISTER_VERIFICATION_EMAIL_ERROR]", emailResult.error);
+    // 8. Check for Duplicate Phone Number (if provided)
+    if (sanitizedPhoneNumber) {
+      const existingUserByPhone = await findUserByPhoneNumber(sanitizedPhoneNumber);
+      if (existingUserByPhone) {
+        return NextResponse.json(
+          { success: false, error: "Phone number already registered" },
+          { status: 409 },
+        );
+      }
     }
 
-    // 10. Return Success Response
-    return NextResponse.json(
-      {
-        success: true,
-        message: "User registered successfully",
-        data: {
-          userId: user.id,
-          email: user.email,
-          verificationInitiated: true,
+    // 9. Hash Password
+    const passwordHash = await bcrypt.hash(password, BCRYPT_COST);
+
+    // 10. Create User Record
+    try {
+      const user = await createUser({
+        email: sanitizedEmail,
+        passwordHash,
+        name: name ? sanitizeInput(name) : null,
+        phoneNumber: sanitizedPhoneNumber,
+      });
+
+      // Initiate email verification flow immediately after registration.
+      const otp = generateOTP();
+      await storeOTP(user.id, otp);
+
+      const emailResult = await sendVerificationEmail(
+        user.email,
+        otp,
+        user.name ?? undefined,
+      );
+
+      if (!emailResult.success) {
+        console.error("[REGISTER_VERIFICATION_EMAIL_ERROR]", emailResult.error);
+      }
+
+      // 11. Return Success Response
+      return NextResponse.json(
+        {
+          success: true,
+          message: "User registered successfully",
+          data: {
+            userId: user.id,
+            email: user.email,
+            phoneNumber: user.phoneNumber,
+            verificationInitiated: true,
+          },
         },
-      },
-      { status: 201 },
-    );
+        { status: 201 },
+      );
+    } catch (error: any) {
+      // Handle PostgreSQL unique violation (error code 23505)
+      if (error.code === '23505') {
+        console.error("[UNIQUE_VIOLATION]", error);
+
+        // Check which constraint was violated
+        if (error.detail?.includes('email')) {
+          return NextResponse.json(
+            { success: false, error: "Email already registered" },
+            { status: 409 },
+          );
+        } else if (error.detail?.includes('phone_number')) {
+          return NextResponse.json(
+            { success: false, error: "Phone number already registered" },
+            { status: 409 },
+          );
+        } else if (error.detail?.includes('username')) {
+          return NextResponse.json(
+            { success: false, error: "Username already taken" },
+            { status: 409 },
+          );
+        }
+
+        return NextResponse.json(
+          { success: false, error: "Account already exists with provided information" },
+          { status: 409 },
+        );
+      }
+
+      // Re-throw other errors to be caught by outer catch block
+      throw error;
+    }
   } catch (error) {
     console.error("[REGISTER_ERROR]", error);
 

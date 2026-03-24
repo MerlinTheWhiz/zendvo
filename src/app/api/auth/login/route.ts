@@ -11,7 +11,7 @@ import {
 } from "@/lib/cookies";
 import { db } from "@/lib/db";
 import { refreshTokens, users } from "@/lib/db/schema";
-import { generateAccessToken, generateRefreshToken } from "@/lib/tokens";
+import { generateAccessToken, generateRefreshToken, UserRole } from "@/lib/tokens";
 import { sanitizeInput, validateEmail } from "@/lib/validation";
 
 const FAILED_ATTEMPT_LIMIT = 5;
@@ -136,7 +136,11 @@ export async function POST(request: NextRequest) {
 
     clearFailedAttempts(ip);
 
-    const payload = { userId: user.id, email: user.email, role: user.role };
+    const payload = {
+      userId: user.id,
+      email: user.email,
+      role: user.role as UserRole,
+    };
     const accessToken = await generateAccessToken(payload);
     const refreshToken = await generateRefreshToken(payload);
 

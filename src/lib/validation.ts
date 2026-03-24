@@ -35,3 +35,28 @@ export const validatePhoneNumber = (phone: string): boolean => {
   const normalized = normalizePhoneNumber(phone);
   return /^\+?\d{7,15}$/.test(normalized);
 };
+
+export const sanitizePhoneNumber = (phone: string): string => {
+  // Trim whitespace and remove common formatting characters
+  let sanitized = phone.trim();
+  sanitized = normalizePhoneNumber(sanitized);
+  
+  // Ensure E.164 format with + prefix
+  if (!sanitized.startsWith('+')) {
+    // If number starts with 0 (local format), assume Nigerian format (+234)
+    if (sanitized.startsWith('0')) {
+      sanitized = '+234' + sanitized.substring(1);
+    } else {
+      // For other numbers without country code, default to +234 (Nigeria)
+      sanitized = '+234' + sanitized;
+    }
+  }
+  
+  return sanitized;
+};
+
+export const validateE164PhoneNumber = (phone: string): boolean => {
+  const sanitized = sanitizePhoneNumber(phone);
+  // E.164 format: + followed by 7-15 digits
+  return /^\+[1-9]\d{6,14}$/.test(sanitized);
+};

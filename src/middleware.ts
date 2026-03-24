@@ -8,13 +8,14 @@ import {
   ACCESS_TOKEN_MAX_AGE,
   REFRESH_TOKEN_MAX_AGE,
 } from "@/lib/cookies";
-import type { TokenPayload } from "@/lib/tokens";
+import type { TokenPayload, UserRole } from "@/lib/tokens";
 
 // API routes that require authentication
 const PROTECTED_API_ROUTES = [
   "/api/user",
   "/api/auth/logout",
   "/api/auth/reset-password",
+  "/api/auth/revoke",
   "/api/gifts",
   "/api/dashboard",
 ];

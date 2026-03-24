@@ -54,7 +54,7 @@ const INITIAL_SENDER_VALUES: SenderDetailsValues = {
   imageName: "",
 };
 
-type FlowStep = "send-gift" | "sender-details" | "review";
+type FlowStep = "details" | "options" | "payment";
 
 const formatUnlockLabel = (date: string, time: string): string => {
   if (!date && !time) return "-";
@@ -69,7 +69,7 @@ export default function DashboardGiftsPage() {
   const [senderValues, setSenderValues] = useState<SenderDetailsValues>(
     INITIAL_SENDER_VALUES,
   );
-  const [step, setStep] = useState<FlowStep>("send-gift");
+  const [step, setStep] = useState<FlowStep>("details");
   const [isProceeding, setIsProceeding] = useState(false);
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
 
@@ -86,42 +86,101 @@ export default function DashboardGiftsPage() {
     setIsSuccessModalOpen(true);
   };
 
+  const handleNext = () => {
+    if (step === "details") setStep("options");
+    else if (step === "options") setStep("payment");
+  };
+
+  const handleBack = () => {
+    if (step === "options") setStep("details");
+    else if (step === "payment") setStep("options");
+  };
+
+  const getCurrentStepIndex = () => {
+    switch (step) {
+      case "details": return 0;
+      case "options": return 1;
+      case "payment": return 2;
+      default: return 0;
+    }
+  };
+
   return (
     <div className="px-3 pb-3 md:px-6 md:pb-6">
       <div className="min-h-[calc(100vh-122px)] rounded-3xl bg-[#F5F5FA] border border-[#EEEEF3]">
-        {step === "send-gift" ? (
+        {/* Progress Bar */}
+        <div className="px-6 pt-6">
+          <div className="flex items-center justify-center mb-8">
+            <div className="flex items-center space-x-4">
+              {[0, 1, 2].map((index) => (
+                <React.Fragment key={index}>
+                  <div
+                    className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${
+                      index <= getCurrentStepIndex()
+                        ? "bg-[#5A42DE] text-white"
+                        : "bg-gray-200 text-gray-500"
+                    }`}
+                  >
+                    {index + 1}
+                  </div>
+                  {index < 2 && (
+                    <div
+                      className={`w-12 h-1 transition-colors ${
+                        index < getCurrentStepIndex()
+                          ? "bg-[#5A42DE]"
+                          : "bg-gray-200"
+                      }`}
+                    />
+                  )}
+                </React.Fragment>
+              ))}
+            </div>
+          </div>
+          <div className="flex justify-center mb-6">
+            <div className="text-center">
+              <h2 className="text-lg font-semibold text-[#18181B]">
+                {step === "details" && "Gift Details"}
+                {step === "options" && "Gift Options"}
+                {step === "payment" && "Payment"}
+              </h2>
+              <p className="text-sm text-[#717182] mt-1">
+                {step === "details" && "Enter recipient and amount details"}
+                {step === "options" && "Configure delivery and wrapper options"}
+                {step === "payment" && "Review and complete your gift"}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {step === "details" ? (
           <SendGiftDetailsForm
             contacts={CONTACTS}
             templates={TEMPLATES}
             value={giftValues}
             onChange={setGiftValues}
-            onContinue={() => setStep("sender-details")}
+            onContinue={handleNext}
           />
         ) : null}
 
-        {step === "sender-details" ? (
+        {step === "options" ? (
+          <SendGiftDetailsForm
+            contacts={CONTACTS}
+            templates={TEMPLATES}
+            value={giftValues}
+            onChange={setGiftValues}
+            onContinue={handleNext}
+            showOptionsOnly={true}
+            onBack={handleBack}
+          />
+        ) : null}
+
+        {step === "payment" ? (
           <SenderDetailsForm
             value={senderValues}
             onChange={setSenderValues}
             amountLabel={`$${amount || 0}`}
-            onContinue={() => setStep("review")}
-          />
-        ) : null}
-
-        {step === "review" ? (
-          <ReviewGiftDetails
-            recipientName={giftValues.recipientName || "John Eze (NGN)"}
-            recipientPhone={giftValues.recipientPhone || "8112345678"}
-            amount={amount}
-            processingFee={processingFee}
-            hideAmountUntilUnlock={giftValues.hideAmountUntilUnlock}
-            anonymousUntilUnlock={giftValues.anonymousUntilUnlock}
-            unlockLabel={formatUnlockLabel(
-              giftValues.unlockDate,
-              giftValues.unlockTime,
-            )}
-            message={giftValues.message}
-            onProceed={handleProceed}
+            onContinue={handleProceed}
+            onBack={handleBack}
             isLoading={isProceeding}
           />
         ) : null}

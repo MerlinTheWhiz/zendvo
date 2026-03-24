@@ -15,6 +15,8 @@ type SenderDetailsFormProps = {
   value: SenderDetailsValues;
   onChange: (next: SenderDetailsValues) => void;
   onContinue: () => void;
+  onBack?: () => void;
+  isLoading?: boolean;
 };
 
 const SenderDetailsForm: React.FC<SenderDetailsFormProps> = ({
@@ -22,6 +24,8 @@ const SenderDetailsForm: React.FC<SenderDetailsFormProps> = ({
   value,
   onChange,
   onContinue,
+  onBack,
+  isLoading = false,
 }) => {
   const isSubmitDisabled =
     !value.fullName.trim() ||
@@ -100,13 +104,28 @@ const SenderDetailsForm: React.FC<SenderDetailsFormProps> = ({
           </div>
         </div>
 
-        <Button
-          onClick={onContinue}
-          disabled={isSubmitDisabled}
-          className="w-full mt-3 h-8 rounded-[8px] bg-[#5A42DE] hover:bg-[#4E37CC] text-[11px]"
-        >
-          Gift {amountLabel}
-        </Button>
+        {/* Navigation Buttons */}
+        <div className="flex gap-3 mt-3">
+          {onBack && (
+            <Button
+              onClick={onBack}
+              disabled={isLoading}
+              className="flex-1 h-8 rounded-[8px] bg-white border border-[#E5E7EB] text-[#18181B] text-[11px] font-semibold hover:bg-gray-50"
+            >
+              Back
+            </Button>
+          )}
+          <Button
+            onClick={onContinue}
+            disabled={isSubmitDisabled || isLoading}
+            isLoading={isLoading}
+            className={`h-8 rounded-[8px] bg-[#5A42DE] hover:bg-[#4E37CC] text-[11px] ${
+              onBack ? "flex-1" : "w-full"
+            }`}
+          >
+            Gift {amountLabel}
+          </Button>
+        </div>
       </div>
     </div>
   );

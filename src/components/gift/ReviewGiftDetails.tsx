@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Button from "@/components/Button";
 
 interface ReviewGiftDetailsProps {
@@ -32,6 +32,24 @@ const ReviewGiftDetails: React.FC<ReviewGiftDetailsProps> = ({
   isLoading = false,
 }) => {
   const total = amount + processingFee;
+
+  // --- new state for check balance ---
+  const [balance, setBalance] = useState<number | null>(null);
+  const [isCheckingBalance, setIsCheckingBalance] = useState(false);
+
+  const handleCheckBalance = async () => {
+    setIsCheckingBalance(true);
+    setBalance(null);
+    try {
+      // TODO: replace with your real balance API call
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      setBalance(250.00); // placeholder until real API is connected
+    } catch (error) {
+      console.error("Failed to fetch balance", error);
+    } finally {
+      setIsCheckingBalance(false);
+    }
+  };
 
   return (
     <div className="w-full flex justify-center px-4 py-6 md:py-10">
@@ -103,6 +121,54 @@ const ReviewGiftDetails: React.FC<ReviewGiftDetailsProps> = ({
               {message || "No message provided."}
             </p>
           </div>
+        </div>
+
+        {/* --- Check Balance Section --- */}
+        <div className="mt-4 flex items-center justify-between bg-white border border-[#EEEEF3] rounded-2xl px-4 py-3 shadow-sm">
+          <div>
+            <p className="text-[13px] font-medium text-[#18181B]">Your Balance</p>
+            {balance !== null ? (
+              <p className="text-[20px] font-semibold text-[#5A42DE]">
+                ${balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              </p>
+            ) : (
+              <p className="text-[13px] text-[#717182]">
+                Click to check your balance
+              </p>
+            )}
+          </div>
+          <button
+            onClick={handleCheckBalance}
+            disabled={isCheckingBalance}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#F4F2FF] text-[#5A42DE] text-[13px] font-semibold hover:bg-[#EBE8FF] transition-all duration-200 disabled:opacity-60"
+          >
+            {isCheckingBalance ? (
+              <>
+                {/* spinner */}
+                <svg
+                  className="animate-spin h-4 w-4 text-[#5A42DE]"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12" cy="12" r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8v8z"
+                  />
+                </svg>
+                Checking...
+              </>
+            ) : (
+              "Check Balance"
+            )}
+          </button>
         </div>
 
         <p className="text-[11px] text-[#717182] mt-6 text-center">

@@ -41,9 +41,20 @@ export const users = pgTable("users", {
   status: userStatusEnum("status").default("unverified").notNull(),
   loginAttempts: integer("login_attempts").default(0).notNull(),
   lockUntil: timestamp("lock_until"),
+  otpFailedAttempts: integer("otp_failed_attempts").default(0).notNull(),
+  otpAttemptsWindowStart: timestamp("otp_attempts_window_start"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
   lastLogin: timestamp("last_login"),
+  lastOtpSentAt: timestamp("last_otp_sent_at"),
+}, (table) => {
+  return [
+    unique("users_phone_number_unique").on(table.phoneNumber),
+    unique("users_email_unique").on(table.email),
+    unique("users_username_unique").on(table.username),
+    index("users_status_idx").on(table.status),
+    index("users_created_at_idx").on(table.createdAt),
+  ];
 });
 
 export const emailVerifications = pgTable(

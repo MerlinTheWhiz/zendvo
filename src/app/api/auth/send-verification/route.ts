@@ -2,7 +2,11 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { generateOTP, storeOTP } from "@/server/services/otpService";
+import {
+  generateOTP,
+  storeOTP,
+  checkOTPRequestRateLimitByUserId,
+} from "@/server/services/otpService";
 import { sendVerificationEmail } from "@/server/services/emailService";
 
 export async function POST(request: Request) {
@@ -29,6 +33,23 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { message: "Email already verified" },
         { status: 200 },
+      );
+    }
+
+    // Rate limiting: max 4 OTPs per 10 minutes per user
+    const rateLimitResult = await checkOTPRequestRateLimitByUserId(userId);
+    if (!rateLimitResult.allowed) {
+      console.log(
+        `[AUTH_AUDIT] OTP rate limited for user: ${userId}`,
+      );
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Rate limit exceeded",
+          message: rateLimitResult.message,
+          retryAfter: Math.ceil(rateLimitResult.retryAfterMs / 1000),
+        },
+        { status: 429 },
       );
     }
 
