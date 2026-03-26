@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { verifyAccessToken, verifyAccessTokenDetailed } from "@/lib/tokens";
+import { consumeRateLimit } from "@/lib/rate-limiter";
 import {
   ACCESS_TOKEN_COOKIE,
   REFRESH_TOKEN_COOKIE,
@@ -20,24 +21,57 @@ const PROTECTED_API_ROUTES = [
   "/api/dashboard",
 ];
 
+const AUTH_RATE_LIMIT = 100;
+const AUTH_RATE_WINDOW_MS = 60 * 1000; // 1 minute
+
+function withAuthRateLimitHeaders(
+  request: NextRequest,
+  response: NextResponse,
+): NextResponse {
+  if (!request.nextUrl.pathname.startsWith("/api/auth")) {
+    return response;
+  }
+
+  const ip =
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "127.0.0.1";
+  const status = consumeRateLimit(
+    `auth:${ip}`,
+    AUTH_RATE_LIMIT,
+    AUTH_RATE_WINDOW_MS,
+  );
+
+  response.headers.set("X-RateLimit-Remaining", String(status.remaining));
+  response.headers.set("X-RateLimit-Limit", String(status.limit));
+  response.headers.set("X-RateLimit-Reset", String(Math.ceil(status.resetMs / 1000)));
+
+  if (status.limited) {
+    response.headers.set("Retry-After", String(Math.ceil(status.resetMs / 1000)));
+  }
+
+  return response;
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Always redirect root to login page
   if (pathname === "/") {
-    return NextResponse.redirect(new URL("/auth/login", request.url));
+    return withAuthRateLimitHeaders(
+      request,
+      NextResponse.redirect(new URL("/auth/login", request.url)),
+    );
   }
 
   // Explicit bypass: /api/auth/refresh must never be protected.
   // Middleware calls this endpoint internally for token refresh —
   // protecting it would create an infinite loop.
   if (pathname.startsWith("/api/auth/refresh")) {
-    return NextResponse.next();
+    return withAuthRateLimitHeaders(request, NextResponse.next());
   }
 
   // Public gift endpoints do not require authentication.
   if (pathname.startsWith("/api/gifts/public")) {
-    return NextResponse.next();
+    return withAuthRateLimitHeaders(request, NextResponse.next());
   }
 
   // Dashboard page route protection (cookie-based)
@@ -57,10 +91,11 @@ export async function middleware(request: NextRequest) {
   );
 
   if (isProtectedApi) {
-    return await handleApiRoute(request);
+    const response = await handleApiRoute(request);
+    return withAuthRateLimitHeaders(request, response);
   }
 
-  return NextResponse.next();
+  return withAuthRateLimitHeaders(request, NextResponse.next());
 }
 
 function injectUserHeaders(
