@@ -1,16 +1,16 @@
-import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { users, gifts } from "@/lib/db/schema";
-import { eq, and, gte } from "drizzle-orm";
+import { gifts, users } from "@/lib/db/schema";
+import { validateHoneypot } from "@/lib/honeypot";
+import { isRateLimited } from "@/lib/rate-limiter";
 import {
+  sanitizeInput,
   validateAmount,
   validateCurrency,
   validateEmail,
   validateFutureDatetime,
-  sanitizeInput,
 } from "@/lib/validation";
-import { isRateLimited } from "@/lib/rate-limiter";
-import { validateHoneypot } from "@/lib/honeypot";
+import { and, eq, gte } from "drizzle-orm";
+import { NextRequest, NextResponse } from "next/server";
 
 const MAX_MESSAGE_LENGTH = 500;
 
@@ -164,7 +164,7 @@ export async function POST(request: NextRequest) {
         amount,
         currency: currency.toUpperCase(),
         message: sanitizedMessage,
-        status: "pending_review",
+        status: "PENDING",
         hideAmount: hideAmount ?? false,
         unlockDatetime: unlockDatetime ? new Date(unlockDatetime) : null,
         senderName: sanitizedSenderName,
@@ -174,7 +174,7 @@ export async function POST(request: NextRequest) {
       .returning();
 
     return NextResponse.json(
-      { success: true, data: { giftId: newGift.id, status: "pending_review" } },
+      { success: true, data: { giftId: newGift.id, status: "PENDING" } },
       { status: 201 },
     );
   } catch (error) {

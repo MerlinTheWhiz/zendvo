@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { gifts } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
 import { verifyGiftOTP } from "@/server/services/otpService";
+import { eq } from "drizzle-orm";
+import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
   try {
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (gift.status !== "pending_otp") {
+    if (gift.status !== "PENDING") {
       return NextResponse.json(
         {
           success: false,
@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
         message: result.message,
         data: {
           giftId: gift.id,
-          status: "otp_verified",
+          status: "FUNDED",
         },
       },
       { status: 200 },

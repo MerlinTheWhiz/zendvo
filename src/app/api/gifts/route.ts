@@ -1,15 +1,15 @@
-import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { users, gifts } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { gifts, users } from "@/lib/db/schema";
 import {
+  sanitizeInput,
   validateAmount,
   validateCurrency,
-  sanitizeInput,
   validateMessage,
 } from "@/lib/validation";
-import { generateOTP, storeGiftOTP } from "@/server/services/otpService";
 import { sendGiftConfirmationOTP } from "@/server/services/emailService";
+import { generateOTP, storeGiftOTP } from "@/server/services/otpService";
+import { eq } from "drizzle-orm";
+import { NextRequest, NextResponse } from "next/server";
 
 export async function GET() {
   return NextResponse.json({ gifts: [] });
@@ -28,7 +28,14 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { recipient, amount, currency = "USDC", message, template, coverImageId } = body;
+    const {
+      recipient,
+      amount,
+      currency = "USDC",
+      message,
+      template,
+      coverImageId,
+    } = body;
 
     // Validate required fields
     if (!recipient || !amount) {
@@ -83,7 +90,9 @@ export async function POST(request: NextRequest) {
     // Sanitize optional fields
     const sanitizedMessage = message ? sanitizeInput(message) : null;
     const sanitizedTemplate = template ? sanitizeInput(template) : null;
-    const sanitizedCoverImageId = coverImageId ? sanitizeInput(String(coverImageId)) : null;
+    const sanitizedCoverImageId = coverImageId
+      ? sanitizeInput(String(coverImageId))
+      : null;
 
     // Validate message length
     if (!validateMessage(sanitizedMessage)) {
@@ -104,7 +113,7 @@ export async function POST(request: NextRequest) {
         message: sanitizedMessage,
         template: sanitizedTemplate,
         coverImageId: sanitizedCoverImageId,
-        status: "pending_otp",
+        status: "PENDING",
       })
       .returning();
 
@@ -130,7 +139,7 @@ export async function POST(request: NextRequest) {
       {
         success: true,
         giftId: newGift.id,
-        status: "pending_otp",
+        status: "PENDING",
       },
       { status: 201 },
     );

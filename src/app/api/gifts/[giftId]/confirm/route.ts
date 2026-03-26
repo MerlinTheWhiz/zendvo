@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { gifts, wallets } from "@/lib/db/schema";
-import { eq, and, sql } from "drizzle-orm";
 import { notifyGiftCompleted } from "@/server/services/notificationService";
 import crypto from "crypto";
+import { and, eq, sql } from "drizzle-orm";
+import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(
   request: NextRequest,
@@ -45,24 +45,24 @@ export async function POST(
       );
     }
 
-    // Idempotency: already completed
-    if (gift.status === "completed") {
+    // Idempotency: already claimed
+    if (gift.status === "CLAIMED") {
       return NextResponse.json(
         {
           success: false,
-          error: "Gift has already been confirmed",
+          error: "Gift has already been claimed",
           transactionId: gift.transactionId,
         },
         { status: 409 },
       );
     }
 
-    // Must be otp_verified to proceed
-    if (gift.status !== "otp_verified") {
+    // Must be FUNDED to proceed
+    if (gift.status !== "FUNDED") {
       return NextResponse.json(
         {
           success: false,
-          error: `Gift must be OTP-verified before confirmation. Current status: ${gift.status}`,
+          error: `Gift must be funded before confirmation. Current status: ${gift.status}`,
         },
         { status: 400 },
       );
@@ -118,10 +118,10 @@ export async function POST(
           },
         });
 
-      // Update gift status to completed
+      // Update gift status to CLAIMED
       await tx
         .update(gifts)
-        .set({ status: "completed", transactionId })
+        .set({ status: "CLAIMED", transactionId })
         .where(eq(gifts.id, giftId));
     });
 
@@ -139,7 +139,7 @@ export async function POST(
     return NextResponse.json(
       {
         success: true,
-        status: "completed",
+        status: "CLAIMED",
         transactionId,
       },
       { status: 200 },
