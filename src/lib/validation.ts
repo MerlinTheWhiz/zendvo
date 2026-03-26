@@ -19,7 +19,7 @@ export const validateAmount = (amount: number): boolean => {
 };
 
 export const validateCurrency = (currency: string): boolean => {
-  const supportedCurrencies = ["USD", "EUR", "GBP", "NGN"]; // Add more as needed
+  const supportedCurrencies = ["USD", "EUR", "GBP", "NGN", "USDC"]; // Add more as needed
   return supportedCurrencies.includes(currency.toUpperCase());
 };
 

@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
     const {
       recipientId,
       amount,
-      currency,
+      currency = "USDC",
       unlockDatetime,
       hideAmount,
       message,
@@ -52,12 +52,12 @@ export async function POST(request: NextRequest) {
       senderAvatar,
     } = body;
 
-    if (!recipientId || !amount || !currency || !senderName || !senderEmail) {
+    if (!recipientId || !amount || !senderName || !senderEmail) {
       return NextResponse.json(
         {
           success: false,
           error:
-            "recipientId, amount, currency, senderName, and senderEmail are required",
+            "recipientId, amount, senderName, and senderEmail are required",
         },
         { status: 400 },
       );
@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: "Unsupported currency. Accepted: USD, EUR, GBP, NGN",
+          error: "Unsupported currency. Accepted: USD, EUR, GBP, NGN, USDC",
         },
         { status: 422 },
       );

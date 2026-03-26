@@ -27,14 +27,14 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { recipient, amount, currency, message, template } = body;
+    const { recipient, amount, currency = "USDC", message, template } = body;
 
     // Validate required fields
-    if (!recipient || !amount || !currency) {
+    if (!recipient || !amount) {
       return NextResponse.json(
         {
           success: false,
-          error: "Recipient, amount, and currency are required",
+          error: "Recipient and amount are required",
         },
         { status: 400 },
       );
@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate currency
+    // Validate currency (defaults to USDC if not provided)
     if (typeof currency !== "string" || !validateCurrency(currency)) {
       return NextResponse.json(
         { success: false, error: "Invalid currency" },

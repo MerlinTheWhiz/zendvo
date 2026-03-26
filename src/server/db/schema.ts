@@ -42,7 +42,7 @@ export const gifts = sqliteTable("Gift", {
   senderId: text("senderId"),
   recipientId: text("recipientId").notNull(),
   amount: real("amount").notNull(),
-  currency: text("currency").notNull(),
+  currency: text("currency").notNull().default("USDC"),
   message: text("message"),
   template: text("template"),
   status: text("status").notNull(),
