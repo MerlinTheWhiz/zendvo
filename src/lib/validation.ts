@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 export const validateEmail = (email: string): boolean => {
   const emailRegex =
     /^(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])$/i;
@@ -100,3 +102,21 @@ export const validateMessage = (message: string | null | undefined): boolean => 
   if (!message) return true;
   return message.length <= 500;
 };
+
+export const CreateGiftSchema = z.object({
+  recipient: z.string().uuid("Invalid recipient ID"),
+  amount: z.number().min(500, "Gift amount needs to be above the minimum threshold"),
+  currency: z.string().default("USDC"),
+  message: z.string().max(500, "Message cannot exceed 500 characters").optional().nullable(),
+  template: z.string().optional().nullable(),
+  coverImageId: z.union([z.string(), z.number()]).optional().nullable(),
+  unlock_at: z.string().datetime().optional().nullable().or(z.date().optional().nullable())
+}).refine((data) => {
+  if (!data.unlock_at) return true;
+  const unlockDate = new Date(data.unlock_at);
+  const oneHourFromNow = Date.now() + 60 * 60 * 1000;
+  return unlockDate.getTime() >= oneHourFromNow;
+}, {
+  message: "unlock_at must be at least 1 hour in the future",
+  path: ["unlock_at"]
+});
