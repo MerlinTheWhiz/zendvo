@@ -8,6 +8,48 @@
       "when": 1774297826569,
       "tag": "0000_orange_pete_wisdom",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1774297826570,
+      "tag": "0001_add_link_expires_at_to_gifts",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1774297826571,
+      "tag": "0002_add_cover_image_id_to_gifts",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1774297826572,
+      "tag": "0003_add_device_id_to_refresh_tokens",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1774297826573,
+      "tag": "0004_add_is_phone_verified_to_users",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1774297826574,
+      "tag": "0005_add_payment_fields_to_gifts",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1774297826575,
+      "tag": "0006_add_short_code_to_gifts",
+      "breakpoints": true
     }
   ]
 }

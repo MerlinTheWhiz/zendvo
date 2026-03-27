@@ -12,6 +12,7 @@ import {
 import { isRateLimited } from "@/lib/rate-limiter";
 import { validateHoneypot } from "@/lib/honeypot";
 import { generateUniqueSlug } from "@/lib/slug";
+import { generateUniqueShortCode } from "@/lib/shortCode";
 
 const MAX_MESSAGE_LENGTH = 500;
 
@@ -160,6 +161,9 @@ export async function POST(request: NextRequest) {
 
     const slug = await generateUniqueSlug();
 
+    // Generate short code for public share links
+    const shortCode = await generateUniqueShortCode();
+
     const [newGift] = await db
       .insert(gifts)
       .values({
@@ -174,11 +178,12 @@ export async function POST(request: NextRequest) {
         senderEmail: sanitizedSenderEmail,
         senderAvatar: sanitizedSenderAvatar,
         slug,
+        shortCode,
       })
       .returning();
 
     return NextResponse.json(
-      { success: true, data: { giftId: newGift.id, status: "pending_review", slug: newGift.slug } },
+      { success: true, data: { giftId: newGift.id, status: "pending_review", slug: newGift.slug, shortCode: newGift.shortCode } },
       { status: 201 },
     );
   } catch (error) {

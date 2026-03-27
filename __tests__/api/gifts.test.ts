@@ -22,6 +22,14 @@ jest.mock("@/server/services/emailService", () => ({
   sendGiftConfirmationOTP: jest.fn(() => ({ success: true })),
 }));
 
+jest.mock("@/lib/slug", () => ({
+  generateUniqueSlug: jest.fn(() => Promise.resolve("abc123")),
+}));
+
+jest.mock("@/lib/shortCode", () => ({
+  generateUniqueShortCode: jest.fn(() => Promise.resolve("xyz123ab")),
+}));
+
 function mockInsertReturning(result: unknown) {
   (db.insert as jest.Mock).mockReturnValue({
     values: jest.fn().mockReturnValue({
@@ -41,7 +49,7 @@ describe("POST /api/gifts", () => {
       email: "recipient@example.com",
       name: "Recipient User",
     });
-    mockInsertReturning({ id: "gift-123" });
+    mockInsertReturning({ id: "gift-123", slug: "abc123", shortCode: "xyz123ab" });
 
     const request = new NextRequest("http://localhost/api/gifts", {
       method: "POST",
@@ -66,6 +74,7 @@ describe("POST /api/gifts", () => {
     expect(data.success).toBe(true);
     expect(data.giftId).toBe("gift-123");
     expect(data.status).toBe("pending_otp");
+    expect(data.slug).toBe("abc123");
   });
 
   it("should return 404 if recipient does not exist", async () => {

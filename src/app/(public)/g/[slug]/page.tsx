@@ -12,7 +12,7 @@ export default async function ShortLinkGiftPage({
   const { slug } = await params;
 
   const gift = await db.query.gifts.findFirst({
-    where: eq(gifts.slug, slug),
+    where: eq(gifts.shortCode, slug),
     columns: { id: true },
   });
 
