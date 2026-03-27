@@ -8,6 +8,8 @@ import {
   sendGiftCompletionToSender,
   sendGiftNotificationToRecipient,
 } from "@/server/services/emailService";
+import { verifyPayment as verifyPaystackPayment, isPaymentSuccessful as isPaystackPaymentSuccessful } from "@/lib/paystack/api";
+import { verifyPayment as verifyStripePayment, isPaymentSuccessful as isStripePaymentSuccessful } from "@/lib/stripe/client";
 
 export async function POST(
   request: NextRequest,
@@ -50,6 +52,53 @@ export async function POST(
         },
         { status: 400 },
       );
+    }
+
+    // Verify payment before proceeding with on-chain operations
+    if (gift.paymentReference && gift.paymentProvider) {
+      try {
+        let verificationResult;
+        let isPaymentSuccessful;
+
+        if (gift.paymentProvider === "paystack") {
+          verificationResult = await verifyPaystackPayment(gift.paymentReference);
+          isPaymentSuccessful = isPaystackPaymentSuccessful(verificationResult.status);
+        } else if (gift.paymentProvider === "stripe") {
+          verificationResult = await verifyStripePayment(gift.paymentReference);
+          isPaymentSuccessful = isStripePaymentSuccessful(verificationResult.status);
+        } else {
+          return NextResponse.json(
+            { success: false, error: "Unsupported payment provider" },
+            { status: 400 },
+          );
+        }
+
+        if (!isPaymentSuccessful) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: `Payment verification failed. Payment status: ${verificationResult.status}`,
+              paymentStatus: verificationResult.status,
+            },
+            { status: 402 },
+          );
+        }
+
+        // Update gift with payment verification timestamp
+        await db
+          .update(gifts)
+          .set({ paymentVerifiedAt: new Date() })
+          .where(eq(gifts.id, giftId));
+      } catch (error) {
+        console.error("Payment verification error:", error);
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Payment verification failed. Please try again.",
+          },
+          { status: 402 },
+        );
+      }
     }
 
     const shareLink = `/g/${gift.slug}`;
