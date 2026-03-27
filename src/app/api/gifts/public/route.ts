@@ -11,6 +11,7 @@ import {
 } from "@/lib/validation";
 import { isRateLimited } from "@/lib/rate-limiter";
 import { validateHoneypot } from "@/lib/honeypot";
+import { generateUniqueSlug } from "@/lib/slug";
 
 const MAX_MESSAGE_LENGTH = 500;
 
@@ -157,6 +158,8 @@ export async function POST(request: NextRequest) {
       ? sanitizeInput(senderAvatar)
       : null;
 
+    const slug = await generateUniqueSlug();
+
     const [newGift] = await db
       .insert(gifts)
       .values({
@@ -170,11 +173,12 @@ export async function POST(request: NextRequest) {
         senderName: sanitizedSenderName,
         senderEmail: sanitizedSenderEmail,
         senderAvatar: sanitizedSenderAvatar,
+        slug,
       })
       .returning();
 
     return NextResponse.json(
-      { success: true, data: { giftId: newGift.id, status: "pending_review" } },
+      { success: true, data: { giftId: newGift.id, status: "pending_review", slug: newGift.slug } },
       { status: 201 },
     );
   } catch (error) {

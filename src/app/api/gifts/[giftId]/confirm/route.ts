@@ -136,11 +136,14 @@ export async function POST(
       console.error("Failed to send gift completion notifications:", err);
     });
 
+    const shareLink = `/g/${gift.slug}`;
+
     return NextResponse.json(
       {
         success: true,
         status: "completed",
         transactionId,
+        shareLink,
       },
       { status: 200 },
     );

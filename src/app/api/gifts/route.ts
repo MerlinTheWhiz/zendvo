@@ -11,6 +11,7 @@ import {
 } from "@/lib/validation";
 import { generateOTP, storeGiftOTP } from "@/server/services/otpService";
 import { sendGiftConfirmationOTP } from "@/server/services/emailService";
+import { generateUniqueSlug } from "@/lib/slug";
 
 export async function GET() {
   return NextResponse.json({ gifts: [] });
@@ -105,6 +106,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Generate short link slug
+    const slug = await generateUniqueSlug();
+
     // Create gift record
     const [newGift] = await db
       .insert(gifts)
@@ -118,6 +122,7 @@ export async function POST(request: NextRequest) {
         coverImageId: sanitizedCoverImageId,
         unlockDatetime: unlock_at ? new Date(unlock_at) : null,
         status: "pending_otp",
+        slug,
       })
       .returning();
 
@@ -144,6 +149,7 @@ export async function POST(request: NextRequest) {
         success: true,
         giftId: newGift.id,
         status: "pending_otp",
+        slug: newGift.slug,
       },
       { status: 201 },
     );

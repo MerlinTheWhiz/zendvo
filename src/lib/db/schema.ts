@@ -148,6 +148,7 @@ export const gifts = pgTable(
     senderAvatar: text("sender_avatar"),
     shareLink: text("share_link").unique(),
     shareLinkToken: text("share_link_token").unique(),
+    slug: text("slug").unique(),
     coverImageId: text("cover_image_id"),
     linkExpiresAt: timestamp("link_expires_at"),
     completedAt: timestamp("completed_at"),
@@ -164,6 +165,7 @@ export const gifts = pgTable(
         table.recipientId,
       ),
       index("gift_share_link_token_idx").on(table.shareLinkToken),
+      index("gift_slug_idx").on(table.slug),
     ];
   },
 );

@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { gifts } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { generateShareLinkToken } from "@/lib/tokens";
 import { processGiftTransaction } from "@/server/services/transactionService";
 import { notifyGiftConfirmed } from "@/server/services/notificationService";
 import {
@@ -53,8 +52,7 @@ export async function POST(
       );
     }
 
-    const shareLinkToken = generateShareLinkToken();
-    const shareLink = `/gift/${shareLinkToken}`;
+    const shareLink = `/g/${gift.slug}`;
 
     const transactionId = await processGiftTransaction({
       senderId: gift.senderId,
