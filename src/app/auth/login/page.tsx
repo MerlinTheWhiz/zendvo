@@ -1,6 +1,6 @@
 "use client";
 
-import React, { Suspense, useState } from "react";
+import React, { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuthContext } from "@/context/AuthContext";
@@ -15,9 +15,25 @@ function LoginForm() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const { login } = useAuthContext();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const REMEMBER_ME_KEY = "zendvo.rememberMe";
+  const REMEMBERED_EMAIL_KEY = "zendvo.rememberedEmail";
+
+  useEffect(() => {
+    try {
+      const storedRememberMe = localStorage.getItem(REMEMBER_ME_KEY) === "true";
+      const storedEmail = localStorage.getItem(REMEMBERED_EMAIL_KEY);
+      if (storedRememberMe && storedEmail) {
+        setRememberMe(true);
+        setEmail(storedEmail);
+      }
+    } catch {
+      // Ignore localStorage failures (e.g., private mode)
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,7 +41,7 @@ function LoginForm() {
     setIsSubmitting(true);
 
     try {
-      await login(email, password);
+      await login(email, password, rememberMe);
       const callbackUrl = searchParams.get("callbackUrl");
       const redirectTo =
         callbackUrl && callbackUrl.startsWith("/")
@@ -87,6 +103,21 @@ function LoginForm() {
             </Link>
           </div>
         </div>
+
+       <label className="flex items-center gap-2 cursor-pointer">
+  <input
+    type="checkbox"
+    className="hidden peer"
+    checked={rememberMe}
+    onChange={(e) => setRememberMe(e.target.checked)}
+  />
+
+  <div className="w-4 h-4 border border-[#D4D4D8] rounded peer-checked:bg-[#5A45FE] peer-checked:border-[#5A45FE]" />
+
+  <span className="text-[13px] font-medium text-[#18181B]">
+    Remember Me
+  </span>
+</label>
 
         <div className="pt-2">
           <Button

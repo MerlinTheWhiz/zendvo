@@ -21,7 +21,7 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, rememberMe?: boolean) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -33,6 +33,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
+  const REMEMBER_ME_KEY = "zendvo.rememberMe";
+  const REMEMBERED_EMAIL_KEY = "zendvo.rememberedEmail";
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -42,10 +44,26 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
           const data = await res.json();
           if (data.data?.user) {
             setUser(data.data.user);
+            return;
           }
         }
-      } catch {
+      }
+      catch {
         // Not authenticated — leave user as null
+      }
+      try {
+        const rememberMe = localStorage.getItem(REMEMBER_ME_KEY) === "true";
+        const rememberedEmail = localStorage.getItem(REMEMBERED_EMAIL_KEY);
+        if (rememberMe && rememberedEmail) {
+          setUser({
+            id: "remembered-user",
+            email: rememberedEmail,
+            name: "Returning User",
+            role: "sender",
+          });
+        }
+      } catch {
+        // Ignore localStorage failures (e.g., private mode)
       } finally {
         setIsLoading(false);
       }
@@ -53,7 +71,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     checkAuth();
   }, []);
 
-  const login = useCallback(async (email: string, password: string) => {
+  const login = useCallback(async (email: string, password: string, rememberMe = false) => {
     setIsLoading(true);
     try {
       // For smooth demo flow, simulate immediate success
@@ -66,6 +84,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       };
 
       setUser(mockUser);
+
+      try {
+        if (rememberMe) {
+          localStorage.setItem(REMEMBER_ME_KEY, "true");
+          localStorage.setItem(REMEMBERED_EMAIL_KEY, email);
+        } else {
+          localStorage.removeItem(REMEMBER_ME_KEY);
+          localStorage.removeItem(REMEMBERED_EMAIL_KEY);
+        }
+      } catch {
+        // Ignore localStorage failures (e.g., private mode)
+      }
 
       // Attempt actual API in background but don't wait for it
       fetch("/api/auth/login", {
@@ -91,6 +121,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       // Proceed with client-side cleanup even if API call fails
     }
     setUser(null);
+    try {
+      localStorage.removeItem(REMEMBER_ME_KEY);
+      localStorage.removeItem(REMEMBERED_EMAIL_KEY);
+    } catch {
+      // Ignore localStorage failures (e.g., private mode)
+    }
     router.push("/auth/login");
   }, [router]);
 
