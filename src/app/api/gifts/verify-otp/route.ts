@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (gift.status !== "PENDING") {
+    if (gift.status !== "pending_otp") {
       return NextResponse.json(
         {
           success: false,
@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
         message: result.message,
         data: {
           giftId: gift.id,
-          status: "FUNDED",
+          status: "otp_verified",
         },
       },
       { status: 200 },

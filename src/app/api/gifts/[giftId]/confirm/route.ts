@@ -68,7 +68,6 @@ export async function POST(
         {
           success: false,
           error: `Gift must be confirmed before completion. Current status: ${gift.status}`,
-          error: `Gift must be confirmed before completion. Current status: ${gift.status}`,
         },
         { status: 400 },
       );
