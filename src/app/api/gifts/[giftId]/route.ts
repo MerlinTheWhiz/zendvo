@@ -1,9 +1,13 @@
-import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { gifts } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
+import { NextRequest, NextResponse } from "next/server";
 
-const REVIEWABLE_GIFT_STATUSES = new Set(["pending_otp", "otp_verified"]);
+const REVIEWABLE_GIFT_STATUSES = new Set([
+  "pending_otp",
+  "otp_verified",
+  "pending_review",
+]);
 
 export async function GET(
   request: NextRequest,

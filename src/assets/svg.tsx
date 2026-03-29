@@ -77,7 +77,7 @@ export const DashboardIcon = ({ active }: { active?: boolean }) => (
   </svg>
 );
 
-export const GiftIcon = () => (
+export const GiftIcon = ({ active }: { active?: boolean }) => (
   <svg
     width="20"
     height="20"
@@ -87,35 +87,35 @@ export const GiftIcon = () => (
   >
     <path
       d="M16.667 10V17.5H3.33366V10"
-      stroke="#8686AA"
+      stroke={active ? "#5A42DE" : "#8686AA"}
       strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
     />
     <path
       d="M18.333 6.25H1.66699V10H18.333V6.25Z"
-      stroke="#8686AA"
+      stroke={active ? "#5A42DE" : "#8686AA"}
       strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
     />
     <path
       d="M10 17.5V6.25"
-      stroke="#8686AA"
+      stroke={active ? "#5A42DE" : "#8686AA"}
       strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
     />
     <path
       d="M10.0003 6.25H6.04199C5.48946 6.25 4.95955 6.03047 4.56885 5.63976C4.17814 5.24906 3.95866 4.71917 3.95866 4.16667C3.95866 3.61413 4.17814 3.08423 4.56885 2.69353C4.95955 2.30283 5.48946 2.08333 6.04199 2.08333C9.16699 2.08333 10.0003 6.25 10.0003 6.25Z"
-      stroke="#8686AA"
+      stroke={active ? "#5A42DE" : "#8686AA"}
       strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
     />
     <path
       d="M10 6.25H13.9583C14.5109 6.25 15.0408 6.03047 15.4315 5.63976C15.8222 5.24906 16.0417 4.71917 16.0417 4.16667C16.0417 3.61413 15.8222 3.08423 15.4315 2.69353C15.0408 2.30283 14.5109 2.08333 13.9583 2.08333C10.8333 2.08333 10 6.25 10 6.25Z"
-      stroke="#8686AA"
+      stroke={active ? "#5A42DE" : "#8686AA"}
       strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -123,7 +123,7 @@ export const GiftIcon = () => (
   </svg>
 );
 
-export const WalletIcon = () => (
+export const WalletIcon = ({ active }: { active?: boolean }) => (
   <svg
     width={18}
     height={18}
@@ -133,28 +133,28 @@ export const WalletIcon = () => (
   >
     <path
       d="M13.53 10.1625C13.215 10.47 13.035 10.9125 13.08 11.385C13.1475 12.195 13.89 12.7875 14.7 12.7875H16.125V13.68C16.125 15.2325 14.8575 16.5 13.305 16.5H4.695C3.1425 16.5 1.875 15.2325 1.875 13.68V8.63251C1.875 7.08001 3.1425 5.8125 4.695 5.8125H13.305C14.8575 5.8125 16.125 7.08001 16.125 8.63251V9.71251H14.61C14.19 9.71251 13.8075 9.87749 13.53 10.1625Z"
-      stroke="#8686AA"
+      stroke={active ? "#5A42DE" : "#8686AA"}
       strokeWidth="1.2"
       strokeLinecap="round"
       strokeLinejoin="round"
     />
     <path
       d="M1.875 9.30845V5.88099C1.875 4.98849 2.4225 4.19346 3.255 3.87846L9.21 1.62846C10.14 1.27596 11.1375 1.96598 11.1375 2.96348V5.81347"
-      stroke="#8686AA"
+      stroke={active ? "#5A42DE" : "#8686AA"}
       strokeWidth="1.2"
       strokeLinecap="round"
       strokeLinejoin="round"
     />
     <path
       d="M16.9191 10.4779V12.0229C16.9191 12.4354 16.5891 12.7729 16.1691 12.7879H14.6991C13.8891 12.7879 13.1466 12.1954 13.0791 11.3854C13.0341 10.9129 13.2141 10.4704 13.5291 10.1629C13.8066 9.87787 14.1891 9.71289 14.6091 9.71289H16.1691C16.5891 9.72789 16.9191 10.0654 16.9191 10.4779Z"
-      stroke="#8686AA"
+      stroke={active ? "#5A42DE" : "#8686AA"}
       strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
     />
     <path
       d="M5.25 9H10.5"
-      stroke="#8686AA"
+      stroke={active ? "#5A42DE" : "#8686AA"}
       strokeWidth="1.2"
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -162,7 +162,7 @@ export const WalletIcon = () => (
   </svg>
 );
 
-export const ProfileIcon = () => (
+export const ProfileIcon = ({ active }: { active?: boolean }) => (
   <svg
     width="20"
     height="20"
@@ -174,14 +174,14 @@ export const ProfileIcon = () => (
       cx="10"
       cy="6.66667"
       r="3.33333"
-      stroke="#8686AA"
+      stroke={active ? "#5A42DE" : "#8686AA"}
       strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
     />
     <path
       d="M3.33301 17.5C3.33301 14.2783 6.31801 11.6667 9.99967 11.6667C13.6813 11.6667 16.6663 14.2783 16.6663 17.5"
-      stroke="#8686AA"
+      stroke={active ? "#5A42DE" : "#8686AA"}
       strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -207,7 +207,7 @@ export const MoonIcon = () => (
   </svg>
 );
 
-export const SettingsIcon = () => (
+export const SettingsIcon = ({ active }: { active?: boolean }) => (
   <svg
     width="20"
     height="20"
@@ -219,14 +219,14 @@ export const SettingsIcon = () => (
       cx="10"
       cy="10"
       r="2.5"
-      stroke="#8686AA"
+      stroke={active ? "#5A42DE" : "#8686AA"}
       strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
     />
     <path
       d="M16.1663 10C16.1663 9.65833 16.1413 9.325 16.0913 9L17.6497 7.775C17.9497 7.54167 18.033 7.125 17.8497 6.79167L16.3497 4.20833C16.1663 3.875 15.758 3.725 15.3997 3.86667L13.5663 4.6C13.0747 4.225 12.533 3.91667 11.9497 3.68333L11.6663 1.75C11.6163 1.375 11.2913 1.08333 10.908 1.08333H7.91634C7.53301 1.08333 7.20801 1.375 7.15801 1.75L6.87467 3.68333C6.29134 3.91667 5.74967 4.225 5.25801 4.6L3.42467 3.86667C3.06634 3.725 2.65801 3.875 2.47467 4.20833L0.974674 6.79167C0.791341 7.125 0.874674 7.54167 1.17467 7.775L2.73301 9C2.68301 9.325 2.65801 9.65833 2.65801 10C2.65801 10.3417 2.68301 10.675 2.73301 11L1.17467 12.225C0.874674 12.4583 0.791341 12.875 0.974674 13.2083L2.47467 15.7917C2.65801 16.125 3.06634 16.275 3.42467 16.1333L5.25801 15.4C5.74967 15.775 6.29134 16.0833 6.87467 16.3167L7.15801 18.25C7.20801 18.625 7.53301 18.9167 7.91634 18.9167H10.908C11.2913 18.9167 11.6163 18.625 11.6663 18.25L11.9497 16.3167C12.533 16.0833 13.0747 15.775 13.5663 15.4L15.3997 16.1333C15.758 16.275 16.1663 16.125 16.3497 15.7917L17.8497 13.2083C18.033 12.875 17.9497 12.4583 17.6497 12.225L16.0913 11C16.1413 10.675 16.1663 10.3417 16.1663 10Z"
-      stroke="#8686AA"
+      stroke={active ? "#5A42DE" : "#8686AA"}
       strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -234,7 +234,7 @@ export const SettingsIcon = () => (
   </svg>
 );
 
-export const HelpIcon = () => (
+export const HelpIcon = ({ active }: { active?: boolean }) => (
   <svg
     width="20"
     height="20"
@@ -246,19 +246,24 @@ export const HelpIcon = () => (
       cx="10"
       cy="10"
       r="8.33333"
-      stroke="#8686AA"
+      stroke={active ? "#5A42DE" : "#8686AA"}
       strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
     />
     <path
       d="M7.5752 7.49999C7.77112 6.94304 8.15782 6.47341 8.66682 6.17426C9.17583 5.87512 9.77427 5.76577 10.3562 5.86358C10.9381 5.96139 11.4659 6.26009 11.8461 6.70632C12.2263 7.15255 12.4344 7.7176 12.4335 8.29999C12.4335 9.99999 9.93353 10.85 9.93353 10.85"
-      stroke="#8686AA"
+      stroke={active ? "#5A42DE" : "#8686AA"}
       strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
     />
-    <circle cx="10" cy="14.1667" r="0.833333" fill="#8686AA" />
+    <circle
+      cx="10"
+      cy="14.1667"
+      r="0.833333"
+      fill={active ? "#5A42DE" : "#8686AA"}
+    />
   </svg>
 );
 export const NotificationIcon = () => (

@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { gifts, wallets } from "@/lib/db/schema";
-import { eq, and, sql } from "drizzle-orm";
 import { notifyGiftCompleted } from "@/server/services/notificationService";
 import { verifyPayment as verifyPaystackPayment, isPaymentSuccessful as isPaystackPaymentSuccessful } from "@/lib/paystack/api";
 import { verifyPayment as verifyStripePayment, isPaymentSuccessful as isStripePaymentSuccessful } from "@/lib/stripe/client";
 import crypto from "crypto";
+import { and, eq, sql } from "drizzle-orm";
+import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(
   request: NextRequest,
@@ -22,6 +22,9 @@ export async function POST(
     }
 
     const { giftId } = await params;
+
+    const body = await request.json().catch(() => ({}));
+    const blockchainTxHash = body.blockchain_tx_hash || body.blockchainTxHash || null;
 
     // Fetch the gift with sender info
     const gift = await db.query.gifts.findFirst({
@@ -47,40 +50,41 @@ export async function POST(
       );
     }
 
-    // Idempotency: already completed
-    if (gift.status === "completed") {
+    // Idempotency: already completed/sent
+    if (gift.status === "completed" || gift.status === "sent") {
       return NextResponse.json(
         {
           success: false,
-          error: "Gift has already been confirmed",
+          error: "Gift has already been completed",
           transactionId: gift.transactionId,
         },
         { status: 409 },
       );
     }
 
-    // Must be otp_verified to proceed
-    if (gift.status !== "otp_verified") {
+    // Must be confirmed to proceed with settlement
+    if (gift.status !== "confirmed") {
       return NextResponse.json(
         {
           success: false,
-          error: `Gift must be OTP-verified before confirmation. Current status: ${gift.status}`,
+          error: `Gift must be confirmed before completion. Current status: ${gift.status}`,
         },
         { status: 400 },
       );
     }
 
     // Verify payment before proceeding with on-chain operations
-    if (gift.paymentReference && gift.paymentProvider) {
+    const giftData = gift as any;
+    if (giftData.paymentReference && giftData.paymentProvider) {
       try {
         let verificationResult;
         let isPaymentSuccessful;
 
-        if (gift.paymentProvider === "paystack") {
-          verificationResult = await verifyPaystackPayment(gift.paymentReference);
+        if (giftData.paymentProvider === "paystack") {
+          verificationResult = await verifyPaystackPayment(giftData.paymentReference);
           isPaymentSuccessful = isPaystackPaymentSuccessful(verificationResult.status);
-        } else if (gift.paymentProvider === "stripe") {
-          verificationResult = await verifyStripePayment(gift.paymentReference);
+        } else if (giftData.paymentProvider === "stripe") {
+          verificationResult = await verifyStripePayment(giftData.paymentReference);
           isPaymentSuccessful = isStripePaymentSuccessful(verificationResult.status);
         } else {
           return NextResponse.json(
@@ -103,7 +107,7 @@ export async function POST(
         // Update gift with payment verification timestamp
         await db
           .update(gifts)
-          .set({ paymentVerifiedAt: new Date() })
+          .set({ paymentVerifiedAt: new Date() } as any)
           .where(eq(gifts.id, giftId));
       } catch (error) {
         console.error("Payment verification error:", error);
@@ -167,10 +171,10 @@ export async function POST(
           },
         });
 
-      // Update gift status to completed
+      // Update gift status to CLAIMED
       await tx
         .update(gifts)
-        .set({ status: "completed", transactionId })
+        .set({ status: "completed", transactionId, blockchainTxHash })
         .where(eq(gifts.id, giftId));
     });
 

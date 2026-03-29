@@ -33,37 +33,22 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { recipient, amount, currency = "USDC", message, template, coverImageId, unlock_at } = body;
-
-    // Validate required fields
-    if (!recipient || !amount) {
+    
+    // Validate request body using Zod schema
+    const validationResult = CreateGiftSchema.safeParse(body);
+    
+    if (!validationResult.success) {
+      const firstError = validationResult.error.issues[0];
       return NextResponse.json(
         {
           success: false,
-          error: "Recipient and amount are required",
+          error: firstError.message,
         },
         { status: 400 },
       );
     }
 
-    // Validate amount
-    if (typeof amount !== "number" || !validateAmount(amount)) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Amount must be a positive number within allowed limits",
-        },
-        { status: 422 },
-      );
-    }
-
-    // Validate currency (defaults to USDC if not provided)
-    if (typeof currency !== "string" || !validateCurrency(currency)) {
-      return NextResponse.json(
-        { success: false, error: "Invalid currency" },
-        { status: 422 },
-      );
-    }
+    const { recipient, amount, currency, message, template, coverImageId, unlock_at } = validationResult.data;
 
     // Check if recipient exists
     const recipientUser = await db.query.users.findFirst({

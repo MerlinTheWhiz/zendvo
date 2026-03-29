@@ -161,7 +161,7 @@ export default function SendGiftDetailsForm({
       setRecipient({
         name: "Julaybeeb Abubakar",
         username: "@julaybeeb",
-        avatar: UserProfile,
+        avatar: UserProfile.src,
       });
     } else {
       setRecipient(null);

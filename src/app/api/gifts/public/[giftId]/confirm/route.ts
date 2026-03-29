@@ -18,6 +18,9 @@ export async function POST(
   try {
     const { giftId } = await params;
 
+    const body = await request.json().catch(() => ({}));
+    const blockchainTxHash = body.blockchain_tx_hash || body.blockchainTxHash || null;
+
     const gift = await db.query.gifts.findFirst({
       where: eq(gifts.id, giftId),
       with: {
@@ -115,6 +118,7 @@ export async function POST(
       .set({
         status: "completed",
         transactionId,
+        blockchainTxHash,
         updatedAt: new Date(),
       })
       .where(eq(gifts.id, giftId));

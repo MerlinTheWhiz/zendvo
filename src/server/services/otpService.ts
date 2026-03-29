@@ -249,7 +249,7 @@ async function sendSMSViaProvider(phoneNumber: string, message: string): Promise
 export async function storeOTP(userId: string, otp: string) {
   const { salt, hash } = hashOTP(otp);
   const storedValue = `${salt}:${hash}`;
-  const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+  const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
   // Invalidate previous unused OTPs
   await db
@@ -450,18 +450,10 @@ export async function verifyOTP(userId: string, otp: string) {
   return { success: true, message: "Email verified successfully!" };
 }
 
-export async function cleanupExpiredOTPs() {
+export async function cleanupExpiredOTPs(): Promise<number> {
   const result = await db
     .delete(emailVerifications)
-    .where(
-      or(
-        lt(emailVerifications.expiresAt, new Date()),
-        lt(
-          emailVerifications.createdAt,
-          new Date(Date.now() - 24 * 60 * 60 * 1000),
-        ),
-      ),
-    )
+    .where(lt(emailVerifications.expiresAt, new Date()))
     .returning();
   return result.length;
 }

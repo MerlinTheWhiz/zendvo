@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { gifts } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
 import { verifyGiftOTP } from "@/server/services/otpService";
+import { eq } from "drizzle-orm";
+import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
   try {

@@ -4,7 +4,7 @@ import Stripe from "stripe";
  * Stripe client configuration for gift creation payments.
  */
 export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2024-12-18.acacia",
+  apiVersion: "2026-02-25.clover",
 });
 
 export const createPaymentIntent = async (
@@ -14,6 +14,45 @@ export const createPaymentIntent = async (
   return await stripe.paymentIntents.create({
     amount: Math.round(amount * 100),
     currency,
+  });
+};
+
+export interface CheckoutSessionParams {
+  giftId: string;
+  amount: number;
+  currency: string;
+  giftDescription?: string;
+  successUrl: string;
+  cancelUrl: string;
+}
+
+/**
+ * Create a Stripe Checkout Session for one-time gift payment.
+ */
+export const createCheckoutSession = async (
+  params: CheckoutSessionParams
+): Promise<Stripe.Checkout.Session> => {
+  const { giftId, amount, currency, giftDescription, successUrl, cancelUrl } = params;
+
+  return await stripe.checkout.sessions.create({
+    mode: "payment",
+    payment_method_types: ["card"],
+    line_items: [
+      {
+        price_data: {
+          currency: currency.toLowerCase(),
+          unit_amount: Math.round(amount * 100),
+          product_data: {
+            name: giftDescription || "Gift Payment",
+            description: `Gift ID: ${giftId}`,
+          },
+        },
+        quantity: 1,
+      },
+    ],
+    metadata: { giftId },
+    success_url: successUrl,
+    cancel_url: cancelUrl,
   });
 };
 

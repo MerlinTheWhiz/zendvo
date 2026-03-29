@@ -17,6 +17,7 @@ import {
   UserRole,
 } from "@/lib/tokens";
 import { sanitizeInput, validateEmail } from "@/lib/validation";
+import { cleanupExpiredOTPs } from "@/server/services/otpService";
 
 const FAILED_ATTEMPT_LIMIT = 5;
 const FAILED_ATTEMPT_WINDOW_MS = 60 * 1000;
@@ -187,6 +188,11 @@ export async function POST(request: NextRequest) {
         deviceInfo: request.headers.get("user-agent"),
         deviceId: getDeviceId(request, device_id),
       });
+    });
+
+    // Lazy cleanup of expired OTPs (non-blocking)
+    cleanupExpiredOTPs().catch((error) => {
+      console.error("[OTP_CLEANUP_ERROR]", error);
     });
 
     const response = NextResponse.json(
