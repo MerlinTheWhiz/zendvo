@@ -22,6 +22,14 @@ jest.mock("@/server/services/emailService", () => ({
   sendGiftConfirmationOTP: jest.fn(() => ({ success: true })),
 }));
 
+jest.mock("@/lib/slug", () => ({
+  generateUniqueSlug: jest.fn(() => Promise.resolve("abc123")),
+}));
+
+jest.mock("@/lib/shortCode", () => ({
+  generateUniqueShortCode: jest.fn(() => Promise.resolve("xyz123ab")),
+}));
+
 function mockInsertReturning(result: unknown) {
   (db.insert as jest.Mock).mockReturnValue({
     values: jest.fn().mockReturnValue({
@@ -41,7 +49,7 @@ describe("POST /api/gifts", () => {
       email: "recipient@example.com",
       name: "Recipient User",
     });
-    mockInsertReturning({ id: "gift-123" });
+    mockInsertReturning({ id: "gift-123", slug: "abc123", shortCode: "xyz123ab" });
 
     const request = new NextRequest("http://localhost/api/gifts", {
       method: "POST",
@@ -66,6 +74,7 @@ describe("POST /api/gifts", () => {
     expect(data.success).toBe(true);
     expect(data.giftId).toBe("gift-123");
     expect(data.status).toBe("pending_otp");
+    expect(data.slug).toBe("abc123");
   });
 
   it("should return 404 if recipient does not exist", async () => {
@@ -147,7 +156,7 @@ describe("POST /api/gifts", () => {
   });
 
   it("should return 400 for unlock_at less than 1 hour in the future", async () => {
-    (prisma.user.findUnique as jest.Mock).mockResolvedValue({
+    (db.query.users.findFirst as jest.Mock).mockResolvedValue({
       id: "recipient-123",
       email: "recipient@example.com",
       name: "Recipient User",
@@ -179,7 +188,7 @@ describe("POST /api/gifts", () => {
   });
 
   it("should return 400 for invalid unlock_at format", async () => {
-    (prisma.user.findUnique as jest.Mock).mockResolvedValue({
+    (db.query.users.findFirst as jest.Mock).mockResolvedValue({
       id: "recipient-123",
       email: "recipient@example.com",
       name: "Recipient User",
@@ -205,23 +214,16 @@ describe("POST /api/gifts", () => {
 
     expect(response.status).toBe(400);
     expect(data.success).toBe(false);
-    expect(data.error).toBe("Invalid date format for unlock_at");
+    expect(data.error).toContain("timezone and milliseconds");
   });
 
   it("should create a gift successfully with valid unlock_at", async () => {
-    (prisma.user.findUnique as jest.Mock).mockResolvedValue({
+    (db.query.users.findFirst as jest.Mock).mockResolvedValue({
       id: "recipient-123",
       email: "recipient@example.com",
       name: "Recipient User",
     });
-    (prisma.gift.create as jest.Mock).mockResolvedValue({
-      id: "gift-123",
-      senderId: "sender-123",
-      recipientId: "recipient-123",
-      amount: 100,
-      currency: "USD",
-      status: "pending_otp",
-    });
+    mockInsertReturning({ id: "gift-123", slug: "abc123", shortCode: "xyz123ab" });
 
     const twoHoursFromNow = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
 
@@ -237,6 +239,146 @@ describe("POST /api/gifts", () => {
         amount: 100,
         currency: "USD",
         unlock_at: twoHoursFromNow,
+      }),
+    });
+
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(201);
+    expect(data.success).toBe(true);
+    expect(data.giftId).toBe("gift-123");
+  });
+
+  it("should reject generic timestamp format for unlock_at", async () => {
+    (db.query.users.findFirst as jest.Mock).mockResolvedValue({
+      id: "recipient-123",
+      email: "recipient@example.com",
+      name: "Recipient User",
+    });
+
+    const request = new NextRequest("http://localhost/api/gifts", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-user-id": "sender-123",
+        "x-user-email": "sender@example.com",
+      },
+      body: JSON.stringify({
+        recipient: "recipient-123",
+        amount: 100,
+        currency: "USD",
+        unlock_at: "2026-03-30 14:00:00", // Generic timestamp without timezone
+      }),
+    });
+
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(data.success).toBe(false);
+    expect(data.error).toContain("timezone and milliseconds");
+  });
+
+  it("should reject incomplete ISO format for unlock_at", async () => {
+    (db.query.users.findFirst as jest.Mock).mockResolvedValue({
+      id: "recipient-123",
+      email: "recipient@example.com",
+      name: "Recipient User",
+    });
+
+    const request = new NextRequest("http://localhost/api/gifts", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-user-id": "sender-123",
+        "x-user-email": "sender@example.com",
+      },
+      body: JSON.stringify({
+        recipient: "recipient-123",
+        amount: 100,
+        currency: "USD",
+        unlock_at: "2026-03-30T14:00:00", // Missing milliseconds and timezone
+      }),
+    });
+
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(data.success).toBe(false);
+    expect(data.error).toContain("timezone and milliseconds");
+  });
+
+  it("should accept valid ISO 8601 with Z timezone for unlock_at", async () => {
+    (db.query.users.findFirst as jest.Mock).mockResolvedValue({
+      id: "recipient-123",
+      email: "recipient@example.com",
+      name: "Recipient User",
+    });
+    mockInsertReturning({ id: "gift-123", slug: "abc123", shortCode: "xyz123ab" });
+
+    const twoHoursFromNow = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
+
+    const request = new NextRequest("http://localhost/api/gifts", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-user-id": "sender-123",
+        "x-user-email": "sender@example.com",
+      },
+      body: JSON.stringify({
+        recipient: "recipient-123",
+        amount: 100,
+        currency: "USD",
+        unlock_at: twoHoursFromNow,
+      }),
+    });
+
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(201);
+    expect(data.success).toBe(true);
+    expect(data.giftId).toBe("gift-123");
+  });
+
+  it("should accept valid ISO 8601 with offset timezone for unlock_at", async () => {
+    (db.query.users.findFirst as jest.Mock).mockResolvedValue({
+      id: "recipient-123",
+      email: "recipient@example.com",
+      name: "Recipient User",
+    });
+    mockInsertReturning({ id: "gift-123", slug: "abc123", shortCode: "xyz123ab" });
+
+    // Create a date 2 hours from now and format it with +01:00 timezone
+    const twoHoursFromNow = new Date(Date.now() + 2 * 60 * 60 * 1000);
+    // Create a proper ISO 8601 string with offset timezone and milliseconds
+    // We need to adjust the time to account for the +01:00 offset
+    const adjustedDate = new Date(twoHoursFromNow.getTime() - (1 * 60 * 60 * 1000)); // Subtract 1 hour for +01:00 offset
+    
+    const year = adjustedDate.getUTCFullYear();
+    const month = String(adjustedDate.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(adjustedDate.getUTCDate()).padStart(2, '0');
+    const hours = String(adjustedDate.getUTCHours()).padStart(2, '0');
+    const minutes = String(adjustedDate.getUTCMinutes()).padStart(2, '0');
+    const seconds = String(adjustedDate.getUTCSeconds()).padStart(2, '0');
+    const milliseconds = String(adjustedDate.getUTCMilliseconds()).padStart(3, '0');
+    
+    const offsetFormat = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${milliseconds}+01:00`;
+
+    const request = new NextRequest("http://localhost/api/gifts", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-user-id": "sender-123",
+        "x-user-email": "sender@example.com",
+      },
+      body: JSON.stringify({
+        recipient: "recipient-123",
+        amount: 100,
+        currency: "USD",
+        unlock_at: offsetFormat,
       }),
     });
 

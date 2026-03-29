@@ -8,10 +8,12 @@ import {
   validateEmail,
   validateFutureDatetime,
   sanitizeInput,
+  convertToUTCDate,
 } from "@/lib/validation";
 import { isRateLimited } from "@/lib/rate-limiter";
 import { validateHoneypot } from "@/lib/honeypot";
 import { generateUniqueSlug } from "@/lib/slug";
+import { generateUniqueShortCode } from "@/lib/shortCode";
 
 const MAX_MESSAGE_LENGTH = 500;
 
@@ -92,12 +94,22 @@ export async function POST(request: NextRequest) {
     }
 
     if (unlockDatetime !== undefined && unlockDatetime !== null) {
-      const parsedDate = new Date(unlockDatetime);
-      if (!validateFutureDatetime(parsedDate)) {
+      try {
+        const utcDate = convertToUTCDate(unlockDatetime);
+        if (!utcDate || !validateFutureDatetime(utcDate)) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: "Delivery datetime must be a valid ISO 8601 date string with timezone in the future",
+            },
+            { status: 422 },
+          );
+        }
+      } catch (error) {
         return NextResponse.json(
           {
             success: false,
-            error: "Delivery datetime must be a valid date in the future",
+            error: error instanceof Error ? error.message : "Invalid delivery datetime format",
           },
           { status: 422 },
         );
@@ -160,6 +172,12 @@ export async function POST(request: NextRequest) {
 
     const slug = await generateUniqueSlug();
 
+    // Generate short code for public share links
+    const shortCode = await generateUniqueShortCode();
+
+    // Convert unlockDatetime to UTC for database storage
+    const utcUnlockDatetime = unlockDatetime ? convertToUTCDate(unlockDatetime) : null;
+
     const [newGift] = await db
       .insert(gifts)
       .values({
@@ -169,16 +187,17 @@ export async function POST(request: NextRequest) {
         message: sanitizedMessage,
         status: "pending_review",
         hideAmount: hideAmount ?? false,
-        unlockDatetime: unlockDatetime ? new Date(unlockDatetime) : null,
+        unlockDatetime: utcUnlockDatetime,
         senderName: sanitizedSenderName,
         senderEmail: sanitizedSenderEmail,
         senderAvatar: sanitizedSenderAvatar,
         slug,
+        shortCode,
       })
       .returning();
 
     return NextResponse.json(
-      { success: true, data: { giftId: newGift.id, status: "pending_review", slug: newGift.slug } },
+      { success: true, data: { giftId: newGift.id, status: "pending_review", slug: newGift.slug, shortCode: newGift.shortCode } },
       { status: 201 },
     );
   } catch (error) {

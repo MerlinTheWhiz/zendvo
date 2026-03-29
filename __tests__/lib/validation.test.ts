@@ -207,7 +207,7 @@ describe("validateUnlockAt", () => {
   it("should reject invalid date formats", () => {
     const result = validateUnlockAt("invalid-date");
     expect(result.valid).toBe(false);
-    expect(result.error).toBe("Invalid date format for unlock_at");
+    expect(result.error).toContain("timezone and milliseconds");
   });
 
   it("should accept exactly 1 hour in the future", () => {

@@ -154,6 +154,7 @@ export const gifts = pgTable(
     shareLink: text("share_link").unique(),
     shareLinkToken: text("share_link_token").unique(),
     slug: text("slug").unique(),
+    shortCode: text("short_code").unique(),
     coverImageId: text("cover_image_id"),
     linkExpiresAt: timestamp("link_expires_at"),
     completedAt: timestamp("completed_at"),
@@ -171,7 +172,7 @@ export const gifts = pgTable(
       ),
       index("gift_share_link_token_idx").on(table.shareLinkToken),
       index("gift_slug_idx").on(table.slug),
-      index("gift_blockchain_tx_hash_idx").on(table.blockchainTxHash),
+      index("gift_short_code_idx").on(table.shortCode),
     ];
   },
 );
