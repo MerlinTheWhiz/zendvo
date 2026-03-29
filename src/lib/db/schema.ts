@@ -118,6 +118,7 @@ export const refreshTokens = pgTable(
     revokedAt: timestamp("revoked_at"),
     deviceInfo: text("device_info"),
     deviceId: text("device_id"),
+    fingerprint: text("fingerprint"),
   },
   (table) => {
     return [index("rt_user_id_idx").on(table.userId)];

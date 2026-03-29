@@ -17,6 +17,7 @@ export interface TokenPayload {
   userId: string;
   email: string;
   role: UserRole;
+  fingerprint?: string;
 }
 
 export async function generateAccessToken(

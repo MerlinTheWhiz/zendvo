@@ -18,6 +18,7 @@ import {
 } from "@/lib/tokens";
 import { sanitizeInput, validateEmail } from "@/lib/validation";
 import { cleanupExpiredOTPs } from "@/server/services/otpService";
+import { computeFingerprint } from "@/lib/fingerprint";
 
 const FAILED_ATTEMPT_LIMIT = 5;
 const FAILED_ATTEMPT_WINDOW_MS = 60 * 1000;
@@ -162,10 +163,14 @@ export async function POST(request: NextRequest) {
 
     clearFailedAttempts(ip);
 
+    const userAgent = request.headers.get("user-agent");
+    const fingerprint = await computeFingerprint(userAgent, ip);
+
     const payload = {
       userId: user.id,
       email: user.email,
       role: user.role as UserRole,
+      fingerprint,
     };
     const accessToken = await generateAccessToken(payload);
     const refreshToken = await generateRefreshToken(payload);
@@ -185,8 +190,9 @@ export async function POST(request: NextRequest) {
         userId: user.id,
         token: refreshToken,
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-        deviceInfo: request.headers.get("user-agent"),
+        deviceInfo: userAgent,
         deviceId: getDeviceId(request, device_id),
+        fingerprint,
       });
     });
 

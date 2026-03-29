@@ -7,6 +7,7 @@ import {
   generateAccessToken,
   generateRefreshToken,
 } from "@/lib/tokens";
+import { computeFingerprint } from "@/lib/fingerprint";
 import {
   ACCESS_TOKEN_COOKIE,
   REFRESH_TOKEN_COOKIE,
@@ -66,10 +67,36 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Fingerprint validation: reject refresh attempts from a different environment
+    if (storedToken.fingerprint) {
+      const ip =
+        request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+        "127.0.0.1";
+      const userAgent = request.headers.get("user-agent");
+      const incomingFingerprint = await computeFingerprint(userAgent, ip);
+
+      if (incomingFingerprint !== storedToken.fingerprint) {
+        console.warn(
+          `[REFRESH] Fingerprint mismatch for user ${payload.userId} — revoking all sessions`,
+        );
+        await db
+          .update(refreshTokens)
+          .set({ revokedAt: new Date() })
+          .where(eq(refreshTokens.userId, payload.userId));
+
+        return NextResponse.json(
+          { success: false, error: "Unauthorized: session fingerprint mismatch" },
+          { status: 401 },
+        );
+      }
+    }
+
+    const fingerprint = storedToken.fingerprint ?? undefined;
     const newPayload = {
       userId: payload.userId,
       email: payload.email,
       role: payload.role,
+      fingerprint,
     };
     const newAccessToken = await generateAccessToken(newPayload);
     const newRefreshToken = await generateRefreshToken(newPayload);
@@ -81,13 +108,14 @@ export async function POST(request: NextRequest) {
         .set({ revokedAt: new Date() })
         .where(eq(refreshTokens.id, storedToken.id));
 
-      // Issue new single-use token
+      // Issue new single-use token, carrying the fingerprint forward
       await tx.insert(refreshTokens).values({
         id: crypto.randomUUID(),
         userId: payload.userId,
         token: newRefreshToken,
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
         deviceInfo: storedToken.deviceInfo,
+        fingerprint,
       });
     });
 
