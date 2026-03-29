@@ -156,7 +156,7 @@ describe("POST /api/gifts", () => {
   });
 
   it("should return 400 for unlock_at less than 1 hour in the future", async () => {
-    (prisma.user.findUnique as jest.Mock).mockResolvedValue({
+    (db.query.users.findFirst as jest.Mock).mockResolvedValue({
       id: "recipient-123",
       email: "recipient@example.com",
       name: "Recipient User",
@@ -188,7 +188,7 @@ describe("POST /api/gifts", () => {
   });
 
   it("should return 400 for invalid unlock_at format", async () => {
-    (prisma.user.findUnique as jest.Mock).mockResolvedValue({
+    (db.query.users.findFirst as jest.Mock).mockResolvedValue({
       id: "recipient-123",
       email: "recipient@example.com",
       name: "Recipient User",
@@ -214,23 +214,16 @@ describe("POST /api/gifts", () => {
 
     expect(response.status).toBe(400);
     expect(data.success).toBe(false);
-    expect(data.error).toBe("Invalid date format for unlock_at");
+    expect(data.error).toBe("unlock_at must be a valid ISO 8601 date string (e.g., 2026-03-30T14:00:00.000Z)");
   });
 
   it("should create a gift successfully with valid unlock_at", async () => {
-    (prisma.user.findUnique as jest.Mock).mockResolvedValue({
+    (db.query.users.findFirst as jest.Mock).mockResolvedValue({
       id: "recipient-123",
       email: "recipient@example.com",
       name: "Recipient User",
     });
-    (prisma.gift.create as jest.Mock).mockResolvedValue({
-      id: "gift-123",
-      senderId: "sender-123",
-      recipientId: "recipient-123",
-      amount: 100,
-      currency: "USD",
-      status: "pending_otp",
-    });
+    mockInsertReturning({ id: "gift-123", slug: "abc123", shortCode: "xyz123ab" });
 
     const twoHoursFromNow = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
 
@@ -246,6 +239,133 @@ describe("POST /api/gifts", () => {
         amount: 100,
         currency: "USD",
         unlock_at: twoHoursFromNow,
+      }),
+    });
+
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(201);
+    expect(data.success).toBe(true);
+    expect(data.giftId).toBe("gift-123");
+  });
+
+  it("should reject generic timestamp format for unlock_at", async () => {
+    (db.query.users.findFirst as jest.Mock).mockResolvedValue({
+      id: "recipient-123",
+      email: "recipient@example.com",
+      name: "Recipient User",
+    });
+
+    const request = new NextRequest("http://localhost/api/gifts", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-user-id": "sender-123",
+        "x-user-email": "sender@example.com",
+      },
+      body: JSON.stringify({
+        recipient: "recipient-123",
+        amount: 100,
+        currency: "USD",
+        unlock_at: "2026-03-30 14:00:00", // Generic timestamp without timezone
+      }),
+    });
+
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(data.success).toBe(false);
+    expect(data.error).toBe("unlock_at must be a valid ISO 8601 date string with timezone (e.g., 2026-03-30T14:00:00.000Z or 2026-03-30T14:00:00+01:00)");
+  });
+
+  it("should reject incomplete ISO format for unlock_at", async () => {
+    (db.query.users.findFirst as jest.Mock).mockResolvedValue({
+      id: "recipient-123",
+      email: "recipient@example.com",
+      name: "Recipient User",
+    });
+
+    const request = new NextRequest("http://localhost/api/gifts", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-user-id": "sender-123",
+        "x-user-email": "sender@example.com",
+      },
+      body: JSON.stringify({
+        recipient: "recipient-123",
+        amount: 100,
+        currency: "USD",
+        unlock_at: "2026-03-30T14:00:00", // Missing milliseconds and timezone
+      }),
+    });
+
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(data.success).toBe(false);
+    expect(data.error).toBe("unlock_at must be a valid ISO 8601 date string with timezone (e.g., 2026-03-30T14:00:00.000Z or 2026-03-30T14:00:00+01:00)");
+  });
+
+  it("should accept valid ISO 8601 with Z timezone for unlock_at", async () => {
+    (db.query.users.findFirst as jest.Mock).mockResolvedValue({
+      id: "recipient-123",
+      email: "recipient@example.com",
+      name: "Recipient User",
+    });
+    mockInsertReturning({ id: "gift-123", slug: "abc123", shortCode: "xyz123ab" });
+
+    const twoHoursFromNow = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
+
+    const request = new NextRequest("http://localhost/api/gifts", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-user-id": "sender-123",
+        "x-user-email": "sender@example.com",
+      },
+      body: JSON.stringify({
+        recipient: "recipient-123",
+        amount: 100,
+        currency: "USD",
+        unlock_at: twoHoursFromNow,
+      }),
+    });
+
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(201);
+    expect(data.success).toBe(true);
+    expect(data.giftId).toBe("gift-123");
+  });
+
+  it("should accept valid ISO 8601 with offset timezone for unlock_at", async () => {
+    (db.query.users.findFirst as jest.Mock).mockResolvedValue({
+      id: "recipient-123",
+      email: "recipient@example.com",
+      name: "Recipient User",
+    });
+    mockInsertReturning({ id: "gift-123", slug: "abc123", shortCode: "xyz123ab" });
+
+    const twoHoursFromNow = new Date(Date.now() + 2 * 60 * 60 * 1000);
+    const offsetFormat = twoHoursFromNow.toISOString().replace('Z', '+01:00'); // Change to +01:00 timezone
+
+    const request = new NextRequest("http://localhost/api/gifts", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-user-id": "sender-123",
+        "x-user-email": "sender@example.com",
+      },
+      body: JSON.stringify({
+        recipient: "recipient-123",
+        amount: 100,
+        currency: "USD",
+        unlock_at: offsetFormat,
       }),
     });
 

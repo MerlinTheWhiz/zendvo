@@ -57,6 +57,8 @@ export const gifts = sqliteTable("Gift", {
   senderName: text("senderName"),
   senderEmail: text("senderEmail"),
   senderAvatar: text("senderAvatar"),
+  slug: text("slug").unique(),
+  shortCode: text("shortCode").unique(),
   createdAt: text("createdAt").notNull(),
   updatedAt: text("updatedAt").notNull(),
 });

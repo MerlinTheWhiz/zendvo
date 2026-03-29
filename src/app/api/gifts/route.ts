@@ -8,6 +8,8 @@ import {
   sanitizeInput,
   validateMessage,
   validateUnlockAt,
+  convertToUTCDate,
+  formatAsUTCISO,
 } from "@/lib/validation";
 import { generateOTP, storeGiftOTP } from "@/server/services/otpService";
 import { sendGiftConfirmationOTP } from "@/server/services/emailService";
@@ -113,6 +115,9 @@ export async function POST(request: NextRequest) {
     // Generate short code for public share links
     const shortCode = await generateUniqueShortCode();
 
+    // Convert unlock_at to UTC for database storage
+    const utcUnlockDatetime = unlock_at ? convertToUTCDate(unlock_at) : null;
+
     // Create gift record
     const [newGift] = await db
       .insert(gifts)
@@ -124,7 +129,7 @@ export async function POST(request: NextRequest) {
         message: sanitizedMessage,
         template: sanitizedTemplate,
         coverImageId: sanitizedCoverImageId,
-        unlockDatetime: unlock_at ? new Date(unlock_at) : null,
+        unlockDatetime: utcUnlockDatetime,
         status: "pending_otp",
         slug,
         shortCode,

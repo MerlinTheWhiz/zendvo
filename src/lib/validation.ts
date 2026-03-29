@@ -28,6 +28,21 @@ export const validateFutureDatetime = (date: Date): boolean => {
 };
 
 export const validateUnlockAt = (unlockAt: string | Date): { valid: boolean; error?: string } => {
+  // Reject non-string/non-Date inputs
+  if (typeof unlockAt !== 'string' && !(unlockAt instanceof Date)) {
+    return { valid: false, error: "unlock_at must be an ISO 8601 string or Date object" };
+  }
+
+  // If it's a string, validate ISO 8601 format strictly
+  if (typeof unlockAt === 'string') {
+    // Strict ISO 8601 regex: YYYY-MM-DDTHH:mm:ss.sssZ or YYYY-MM-DDTHH:mm:ss.sss±HH:mm
+    // Requires timezone and milliseconds for strict validation
+    const iso8601Regex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}(Z|[+-]\d{2}:\d{2})$/;
+    if (!iso8601Regex.test(unlockAt)) {
+      return { valid: false, error: "unlock_at must be a valid ISO 8601 date string with timezone and milliseconds (e.g., 2026-03-30T14:00:00.000Z or 2026-03-30T14:00:00.000+01:00)" };
+    }
+  }
+
   const unlockDate = new Date(unlockAt);
   
   if (isNaN(unlockDate.getTime())) {
@@ -41,6 +56,44 @@ export const validateUnlockAt = (unlockAt: string | Date): { valid: boolean; err
   }
   
   return { valid: true };
+};
+
+/**
+ * Converts an unlock_at value to a UTC Date object for database storage
+ * @param unlockAt - ISO 8601 string or Date object
+ * @returns UTC Date object or null if invalid
+ */
+export const convertToUTCDate = (unlockAt: string | Date | null | undefined): Date | null => {
+  if (!unlockAt) {
+    return null;
+  }
+
+  const validation = validateUnlockAt(unlockAt);
+  if (!validation.valid) {
+    throw new Error(validation.error);
+  }
+
+  const date = new Date(unlockAt);
+  
+  // Ensure the date is valid
+  if (isNaN(date.getTime())) {
+    throw new Error("Invalid date format for unlock_at");
+  }
+
+  return date;
+};
+
+/**
+ * Formats a Date object as an ISO 8601 string in UTC (Z format)
+ * @param date - Date object to format
+ * @returns ISO 8601 string in UTC format
+ */
+export const formatAsUTCISO = (date: Date | null | undefined): string | null => {
+  if (!date || isNaN(date.getTime())) {
+    return null;
+  }
+  
+  return date.toISOString();
 };
 
 export const normalizePhoneNumber = (phone: string): string => {
